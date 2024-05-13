@@ -13,21 +13,18 @@ EXPOSE 8000
 # DEV. But when you run this through the Docker Compose, it will overwrite that 
 ARG DEV=false
 
-# install dependencies
-
-# create virtual environment
-RUN python -m venv /py && \ 
+# install dependencies and create virtual environment
+RUN python -m venv /py && \
     /py/bin/pip install --upgrade pip && \
+    apk add --update --no-cache postgresql-client && \
+    apk add --update --no-cache --virtual .tmp-build-deps gcc libc-dev linux-headers postgresql-dev && \
     /py/bin/pip install -r /tmp/requirements.txt && \
     if [ "$DEV" = "true" ]; then /py/bin/pip install -r /tmp/requirements.dev.txt; fi && \
-    rm -rf /tmp/requirements.txt && \
-    adduser \
-    --disabled-password \
-    --no-create-home \
-    django-user
+    apk del .tmp-build-deps && \
+    rm -rf /tmp/requirements.txt /tmp/requirements.dev.txt && \
+    adduser -D -H django-user
 
-
-# so that we can run the app as a non-root user, from our virtual environment, without having to run the entire path
+# Environment settings to run the app as a non-root user, from our virtual environment
 ENV PATH="/py/bin:$PATH"
 
 USER django-user
